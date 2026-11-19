@@ -501,6 +501,7 @@ footer.site .g { color: var(--green); }
           <div class="field"><label for="f-email">email</label><input id="f-email" name="email" type="email" autocomplete="email" required></div>
         </div>
         <div class="field"><label for="f-msg">message</label><textarea id="f-msg" name="message" required></textarea></div>
+        <input type="text" id="f-hp" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
         <button class="btn" type="submit">./send_message</button>
         <p class="note" id="form-note" role="status"></p>
       </div>
@@ -719,13 +720,24 @@ document.getElementById('copy').addEventListener('click', async ev => {
   setTimeout(() => { b.textContent = 'copy'; }, 1600);
 });
 
-/* contact form (not connected to a mail service yet) */
-document.getElementById('contact-form').addEventListener('submit', ev => {
+/* contact form: sends to Gmail through FormSubmit (formsubmit.co) */
+const FORM_ENDPOINT = 'https://formsubmit.co/ajax/prabodhghule21391@gmail.com';
+document.getElementById('contact-form').addEventListener('submit', async ev => {
   ev.preventDefault();
-  const f = ev.currentTarget, note = document.getElementById('form-note');
+  const f = ev.currentTarget, note = document.getElementById('form-note'), btn = f.querySelector('button[type=submit]');
   if (!f.checkValidity()) { note.style.color = 'var(--red)'; note.textContent = 'error: name, a valid email and a message are required'; return; }
-  note.style.color = 'var(--amber)';
-  note.textContent = 'warn: form not connected yet. Email or message me on LinkedIn for now.';
+  if (f.querySelector('#f-hp').value) return;
+  btn.disabled = true; note.style.color = 'var(--dim)'; note.textContent = '> sending...';
+  try {
+    const r = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ name: f.elements['name'].value, email: f.elements['email'].value, message: f.elements['message'].value, _subject: 'Portfolio message from ' + f.elements['name'].value, _template: 'table', _captcha: 'false' }) });
+    if (!r.ok) throw new Error(r.status);
+    note.style.color = 'var(--green)'; note.textContent = 'ok: message delivered. I will reply to ' + f.elements['email'].value + ' soon.';
+    f.reset();
+  } catch (e) {
+    note.style.color = 'var(--amber)';
+    note.textContent = 'warn: could not send from here. Email prabodhghule21391@gmail.com instead.';
+  } finally { btn.disabled = false; }
 });
 document.getElementById('yr').textContent = new Date().getFullYear();
 

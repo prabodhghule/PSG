@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prabodh Shivaji Ghule · Cortex XSIAM Engineer</title>
+<meta name="description" content="Prabodh Shivaji Ghule, Senior Technical Engineer in Mumbai. Cortex XSIAM and XDR deployments, SIEM migration to XSIAM, XQL detection engineering and enterprise log-source integration.">
+<meta name="keywords" content="Prabodh Shivaji Ghule, Prabodh Ghule, Cortex XSIAM, Cortex XDR, SIEM migration, XQL, detection engineering, SOC, Mumbai">
+<meta name="author" content="Prabodh Shivaji Ghule">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#05080A">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_IN">
+<meta property="og:title" content="Prabodh Shivaji Ghule · Senior Technical Engineer, Cortex XSIAM &amp; XDR">
+<meta property="og:description" content="Deploying Cortex XSIAM and XDR, migrating legacy SIEMs and tuning XQL detections for enterprise SOCs.">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: SOC console. Terminal hero with a live XQL panel, then "modules" laid out as card grids, each section opened by a shell prompt. Single dark world. */
+:root {
+  --bg: #05080A;
+  --panel: #0A1014;
+  --panel-2: #0E161B;
+  --ink: #D7E3DC;
+  --dim: #7F938A;
+  --line: #17242A;
+  --line-2: #22343B;
+  --green: #3DFF9A;
+  --green-dim: #1B6B46;
+  --cyan: #4CD7F6;
+  --amber: #FFB547;
+  --red: #FF5D6C;
+  --font-display: "Chakra Petch", "IBM Plex Mono", ui-monospace, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+::selection { background: var(--green); color: var(--bg); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+#rain { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .5; }
+body::after { /* scanlines */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
+}
+.wrap { position: relative; z-index: 2; max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+.mono { font-family: var(--font-mono); }
+
+/* top bar */
+#progress { position: fixed; top: 0; left: 0; height: 2px; width: 0; background: var(--green); box-shadow: 0 0 10px var(--green); z-index: 60; }
+.nav { position: sticky; top: 0; z-index: 50; background: rgba(5,8,10,.82); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.nav-inner { max-width: 1160px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 20px; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-mono); font-size: 14px; }
+.brand .pg { font-family: var(--font-display); font-weight: 700; color: var(--bg); background: var(--green); padding: 2px 7px; border-radius: 3px; letter-spacing: .04em; }
+.brand .host { color: var(--dim); }
+.brand .host b { color: var(--green); font-weight: 500; }
+.links { display: flex; gap: 2px; font-family: var(--font-mono); font-size: 13px; }
+.links a { text-decoration: none; color: var(--dim); padding: 6px 10px; border-radius: 4px; }
+.links a:hover { color: var(--ink); background: var(--panel-2); }
+.links a.active { color: var(--green); background: rgba(61,255,154,.08); }
+.links a.active::before { content: "> "; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none; cursor: pointer;
+  font: 600 14px/1 var(--font-mono); padding: 12px 18px; border-radius: 4px; border: 1px solid var(--green);
+  background: var(--green); color: var(--bg); letter-spacing: .02em;
+}
+.btn:hover { box-shadow: 0 0 0 3px rgba(61,255,154,.18), 0 0 24px rgba(61,255,154,.35); }
+.btn.ghost { background: transparent; color: var(--green); }
+.btn.sm { padding: 8px 12px; font-size: 12.5px; }
+@media (max-width: 960px) { .links { display: none; } }
+@media (max-width: 480px) { .nav .js-resume { display: none; } }
+.dl-note { font-family: var(--font-mono); font-size: 12px; color: var(--amber); margin: 10px 0 0; min-height: 1em; }
+
+/* hero */
+.hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; padding: 72px 0 56px; }
+@media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding-top: 44px; } }
+.prompt { font-family: var(--font-mono); font-size: 14px; color: var(--dim); margin: 0 0 14px; }
+.prompt .u { color: var(--green); } .prompt .p { color: var(--cyan); }
+h1 {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  font-size: clamp(38px, 6vw, 68px); line-height: .98; letter-spacing: .01em; margin: 0 0 16px; text-wrap: balance;
+}
+h1 .mid { color: var(--green); text-shadow: 0 0 24px rgba(61,255,154,.35); }
+.role-line { font-family: var(--font-mono); font-size: clamp(15px, 2vw, 18px); color: var(--cyan); margin: 0 0 18px; min-height: 1.6em; }
+.role-line .cur { display: inline-block; width: .6em; height: 1.1em; background: var(--green); vertical-align: -2px; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.tagline { font-size: 18px; color: var(--ink); max-width: 32em; margin: 0 0 22px; opacity: .9; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; }
+.tags li { font-family: var(--font-mono); font-size: 12px; color: var(--green); border: 1px solid var(--green-dim); background: rgba(61,255,154,.05); padding: 4px 9px; border-radius: 3px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* terminal window */
+.term { background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; box-shadow: 0 30px 80px -30px rgba(61,255,154,.25), 0 0 0 1px rgba(61,255,154,.04); }
+.term-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2); font-family: var(--font-mono); font-size: 12px; color: var(--dim); }
+.term-bar i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.term-bar i:nth-child(1) { background: var(--red); } .term-bar i:nth-child(2) { background: var(--amber); } .term-bar i:nth-child(3) { background: var(--green); }
+.term-bar span { margin-left: 8px; }
+.term-body { padding: 18px; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; overflow-x: auto; }
+.term-body pre { margin: 0; white-space: pre; }
+.k { color: var(--cyan); } .s { color: var(--amber); } .c { color: var(--dim); } .g { color: var(--green); } .r { color: var(--red); }
+.out { margin-top: 14px; border-top: 1px dashed var(--line-2); padding-top: 12px; }
+.out table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.out th { text-align: left; color: var(--dim); font-weight: 500; padding: 2px 12px 6px 0; border-bottom: 1px solid var(--line); }
+.out td { padding: 5px 12px 5px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.out td.n { color: var(--green); font-weight: 600; }
+
+/* sections */
+section.block { padding: 96px 0 0; }
+.sec-head { margin-bottom: 32px; }
+.sec-head .cmd { font-family: var(--font-mono); font-size: 14px; color: var(--dim); margin: 0 0 8px; }
+.sec-head .cmd .u { color: var(--green); }
+h2 { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; font-size: clamp(28px, 4vw, 40px); line-height: 1.05; margin: 0; }
+h2 .hash { color: var(--green); }
+.sec-head p { color: var(--dim); margin: 10px 0 0; max-width: 46em; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 20px; line-height: 1.25; margin: 0; letter-spacing: .01em; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.chips li { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); padding: 3px 8px; border-radius: 3px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+/* modules (focus) */
+.mod { padding: 22px; display: grid; gap: 12px; align-content: start; position: relative; transition: border-color .2s; }
+.mod:hover { border-color: var(--green-dim); }
+.mod-top { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; color: var(--dim); }
+.status { color: var(--green); } .status::before { content: "● "; }
+.mod p { margin: 0; color: var(--dim); font-size: 14.5px; }
+
+/* experience */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; font-family: var(--font-mono); }
+.filter { font: 500 12.5px var(--font-mono); padding: 7px 12px; border-radius: 3px; border: 1px solid var(--line-2); background: var(--panel); color: var(--dim); cursor: pointer; }
+.filter::before { content: "--"; color: var(--green-dim); }
+.filter[aria-pressed="true"] { color: var(--bg); background: var(--green); border-color: var(--green); }
+.filter[aria-pressed="true"]::before { color: var(--bg); }
+.exp { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .exp { grid-template-columns: 1fr; } }
+.exp-list { display: grid; gap: 8px; }
+.exp-item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 14px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel); color: inherit; font: inherit; cursor: pointer; border-left: 3px solid var(--line-2); }
+.exp-item[hidden] { display: none; }
+.exp-item:hover { border-color: var(--line-2); }
+.exp-item .pid { font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+.exp-item b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+.exp-item small { color: var(--dim); font-size: 12.5px; }
+.exp-item .arr { font-family: var(--font-mono); color: var(--dim); }
+.exp-item[aria-selected="true"] { border-left-color: var(--green); background: var(--panel-2); }
+.exp-item[aria-selected="true"] .arr, .exp-item[aria-selected="true"] .pid { color: var(--green); }
+.exp-detail { padding: 26px; display: grid; gap: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--dim); align-items: center; }
+.pill { font-family: var(--font-mono); font-size: 11.5px; padding: 2px 8px; border-radius: 3px; border: 1px solid var(--green-dim); color: var(--green); background: rgba(61,255,154,.06); }
+.exp-detail h3 { font-size: 26px; }
+.exp-detail .sub { color: var(--cyan); font-family: var(--font-mono); font-size: 13.5px; margin-top: -6px; }
+.exp-detail p { margin: 0; color: var(--dim); }
+.ticks { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; font-size: 14.5px; }
+.ticks li { display: grid; grid-template-columns: 24px 1fr; }
+.ticks li::before { content: "[+]"; font-family: var(--font-mono); font-size: 12px; color: var(--green); padding-top: 2px; }
+
+/* work: incident-style cards with severity stripe */
+.case { padding: 22px 22px 22px 26px; display: grid; gap: 10px; align-content: start; position: relative; overflow: hidden; }
+.case::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--sev, var(--green)); }
+.case .meta .id { color: var(--sev, var(--green)); }
+.case p { margin: 0; color: var(--dim); font-size: 14.5px; }
+
+/* projects */
+.proj { padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+.proj p { margin: 0; color: var(--dim); font-size: 14px; }
+.impact { font-family: var(--font-mono); font-size: 12.5px; color: var(--green); background: rgba(61,255,154,.05); border: 1px dashed var(--green-dim); padding: 10px 12px; border-radius: 4px; }
+.impact::before { content: "> result: "; color: var(--dim); }
+.proj .chips { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* skills as ls output */
+.skill { padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+.skill .path { font-family: var(--font-mono); font-size: 12.5px; color: var(--cyan); }
+.skill .path::before { content: "~/skills/"; color: var(--dim); }
+.edu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+@media (max-width: 640px) { .edu-row { grid-template-columns: 1fr; } }
+.edu { padding: 16px 20px; display: grid; gap: 2px; }
+.edu small { font-family: var(--font-mono); font-size: 11.5px; color: var(--dim); }
+.edu b { font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+
+
+/* learning */
+.learn-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .learn-grid { grid-template-columns: 1fr; } }
+.queue { padding: 20px; display: grid; gap: 18px; }
+.q-item { display: grid; gap: 8px; }
+.q-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.q-head h3 { font-size: 17px; }
+.q-head .q-org { font-family: var(--font-mono); font-size: 11.5px; color: var(--cyan); }
+.q-item p { margin: 0; color: var(--dim); font-size: 14px; }
+.bar { position: relative; height: 10px; border: 1px solid var(--green-dim); border-radius: 2px; background: var(--bg); overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: repeating-linear-gradient(90deg, var(--green) 0 6px, transparent 6px 8px); box-shadow: 0 0 10px rgba(61,255,154,.4); }
+.bar.indet i { width: 30%; animation: scan 2.2s ease-in-out infinite; }
+@keyframes scan { 0% { left: -30%; } 100% { left: 100%; } }
+.q-meta { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11.5px; color: var(--dim); }
+.q-meta .st { color: var(--amber); }
+.side { display: grid; gap: 16px; }
+.side .panel { padding: 20px; display: grid; gap: 12px; }
+.side .path { font-family: var(--font-mono); font-size: 12.5px; color: var(--cyan); }
+.chips.dim li { border-style: dashed; }
+@media (prefers-reduced-motion: reduce) { .bar.indet i { animation: none; left: 0; width: 100%; opacity: .35; } }
+
+/* certifications: flip cards */
+.cert-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.cert-tools .hint { font-family: var(--font-mono); font-size: 12.5px; color: var(--dim); }
+.cert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.flip { perspective: 1200px; height: 330px; }
+.flip-inner { position: relative; width: 100%; height: 100%; transition: transform .7s cubic-bezier(.2,.7,.2,1); transform-style: preserve-3d; }
+.flip.on .flip-inner { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 6px; border: 1px solid var(--line-2); background: var(--panel); overflow: hidden; }
+.front { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.front::after { content: ""; position: absolute; right: -40px; top: -40px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, rgba(61,255,154,.16), transparent 70%); }
+.front .top { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 11.5px; color: var(--dim); }
+.front .org { color: var(--cyan); }
+.front h3 { font-size: 18px; }
+.front .desc { margin: 0; color: var(--dim); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.front dl { margin: auto 0 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-family: var(--font-mono); font-size: 11.5px; }
+.front dt { color: var(--dim); } .front dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.flip-btn { margin-top: 10px; align-self: flex-start; font: 500 12px var(--font-mono); color: var(--green); background: none; border: 1px solid var(--green-dim); border-radius: 3px; padding: 6px 10px; cursor: pointer; }
+.flip-btn:hover { background: rgba(61,255,154,.08); }
+.back { transform: rotateY(180deg); display: grid; grid-template-rows: 1fr auto; background: var(--panel-2); }
+.back .img { display: grid; place-items: center; padding: 12px; min-height: 0; }
+.back img { cursor: pointer; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 3px; }
+.back .ph { width: 100%; height: 100%; border: 1px dashed var(--line-2); border-radius: 4px; display: grid; place-items: center; text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--dim); padding: 12px;
+  background: repeating-linear-gradient(45deg, transparent 0 10px, rgba(61,255,154,.025) 10px 20px); }
+.back .ph b { display: block; color: var(--green); font-weight: 500; margin-bottom: 4px; }
+.back .bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: 11.5px; }
+.back .bar a { color: var(--cyan); text-decoration: none; }
+.back .bar a:hover { text-decoration: underline; }
+.back .bar button { font: 500 11.5px var(--font-mono); background: none; border: 0; color: var(--green); cursor: pointer; padding: 0; }
+
+
+
+/* contact */
+.contact { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .contact { grid-template-columns: 1fr; } }
+.c-list { display: grid; gap: 10px; }
+.c-item { display: flex; gap: 14px; align-items: center; padding: 16px; text-decoration: none; }
+.c-item .lbl { font-family: var(--font-mono); font-size: 11.5px; color: var(--dim); display: block; }
+.c-item b { font-family: var(--font-mono); font-weight: 500; font-size: 14px; color: var(--green); word-break: break-all; }
+.c-item .ico { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--green-dim); border-radius: 4px; color: var(--green); flex: none; }
+.copy { margin-left: auto; font: 500 11.5px var(--font-mono); background: none; border: 1px solid var(--line-2); color: var(--dim); border-radius: 3px; padding: 5px 9px; cursor: pointer; }
+.copy:hover { color: var(--green); border-color: var(--green-dim); }
+form.term .term-body { display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; }
+.field label { font-family: var(--font-mono); font-size: 12.5px; color: var(--green); }
+.field label::before { content: "$ "; color: var(--dim); }
+.field input, .field textarea { font: 14px var(--font-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line-2); border-radius: 4px; padding: 10px 12px; width: 100%; }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(61,255,154,.12); }
+.field textarea { min-height: 110px; resize: vertical; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+.note { margin: 0; font-family: var(--font-mono); font-size: 12.5px; color: var(--amber); min-height: 1.2em; }
+footer.site { position: relative; z-index: 2; padding: 80px 20px 40px; text-align: center; font-family: var(--font-mono); font-size: 12.5px; color: var(--dim); }
+footer.site .g { color: var(--green); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .flip-inner { transition: none; }
+  .role-line .cur { animation: none; }
+  #rain { display: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+<div id="progress" aria-hidden="true"></div>
+
+<nav class="nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="#about"><span class="pg">PG</span><span class="host"><b>prabodh</b>@soc:~$</span></a>
+    <div class="links">
+      <a href="#about">whoami</a><a href="#focus">focus</a><a href="#experience">experience</a><a href="#work">work</a><a href="#projects">projects</a><a href="#skills">skills</a><a href="#learning">learning</a><a href="#certifications">certs</a><a href="#contact">contact</a>
+    </div>
+    <div style="display:flex;gap:8px"><a class="btn ghost sm js-resume" href="Prabodh-Shivaji-Ghule-Resume.pdf" download>↓ resume.pdf</a><a class="btn sm" href="#contact">./connect</a></div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section id="about">
+  <div class="hero">
+    <div>
+      <p class="prompt"><span class="u">prabodh@soc</span>:<span class="p">~</span>$ whoami</p>
+      <h1>Prabodh <span class="mid">Shivaji</span> Ghule</h1>
+      <p class="role-line"><span id="typed">Senior Technical Engineer · Cortex XSIAM &amp; XDR</span><span class="cur" aria-hidden="true"></span></p>
+      <p class="tagline">I deploy Cortex XSIAM and XDR, migrate legacy SIEMs and tune XQL detections so enterprise SOCs see more threats with less noise.</p>
+      <ul class="tags">
+        <li>XSIAM</li><li>XDR</li><li>XSOAR</li><li>XQL</li><li>MITRE ATT&amp;CK</li><li>Mumbai, IN</li>
+      </ul>
+      <div class="ctas">
+        <a class="btn" href="#work">view ./work</a>
+        <a class="btn ghost js-resume" href="Prabodh-Shivaji-Ghule-Resume.pdf" download>↓ ./download_resume.sh</a>
+        <a class="btn ghost" href="#certifications">cat certs</a>
+      </div>
+      <p class="dl-note" id="dl-note" role="status"></p>
+    </div>
+
+    <div class="term" role="img" aria-label="XQL query summarising experience: 3+ years, 2 SIEM migrations, 10+ log source families, 8 certifications">
+      <div class="term-bar"><i></i><i></i><i></i><span>xsiam://query — profile.xql</span></div>
+      <div class="term-body">
+<pre><span class="c">// career telemetry, last 3 yrs</span>
+<span class="k">dataset</span> = <span class="s">altisec_engineer</span>
+| <span class="k">filter</span> analyst = <span class="s">"prabodh.ghule"</span>
+| <span class="k">filter</span> since &gt;= <span class="s">"2023-07"</span>
+| <span class="k">comp</span> <span class="g">count</span>() <span class="k">by</span> metric
+| <span class="k">sort</span> desc value</pre>
+        <div class="out">
+          <table>
+            <thead><tr><th>metric</th><th>value</th><th>status</th></tr></thead>
+            <tbody>
+              <tr><td>years_in_soc_engineering</td><td class="n">3+</td><td class="g">active</td></tr>
+              <tr><td>siem_migrations_to_xsiam</td><td class="n">2</td><td class="g">done</td></tr>
+              <tr><td>log_source_families</td><td class="n">10+</td><td class="g">ingesting</td></tr>
+              <tr><td>certifications_awards</td><td class="n">8</td><td class="g">verified</td></tr>
+            </tbody>
+          </table>
+          <p class="c" style="margin:10px 0 0">4 rows · 0.042s</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="focus">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> systemctl list-units --type=focus</p>
+    <h2><span class="hash">#</span> What I work on</h2>
+  </div>
+  <div class="grid-2">
+    <article class="panel mod"><div class="mod-top"><span>mod_01 / xsiam</span><span class="status">running</span></div>
+      <h3>XSIAM architecture &amp; deployment</h3>
+      <p>XSIAM designs that fit each customer's infrastructure, ingestion needs and SOC workflows, from planning through go-live.</p>
+      <ul class="chips"><li>Cortex XSIAM</li><li>Architecture reviews</li><li>Deployment planning</li></ul></article>
+    <article class="panel mod"><div class="mod-top"><span>mod_02 / migration</span><span class="status">running</span></div>
+      <h3>SIEM migration &amp; log onboarding</h3>
+      <p>Data-source onboarding, parser validation, normalization and correlation-rule migration so nothing goes dark when a legacy SIEM is retired.</p>
+      <ul class="chips"><li>SIEM migration</li><li>Parsing</li><li>Normalization</li><li>Ingestion troubleshooting</li></ul></article>
+    <article class="panel mod"><div class="mod-top"><span>mod_03 / detection</span><span class="status">running</span></div>
+      <h3>Detection engineering</h3>
+      <p>XQL detections and correlation rules mapped to MITRE ATT&amp;CK and tuned with SOC teams to cut false positives.</p>
+      <ul class="chips"><li>XQL</li><li>Correlation rules</li><li>MITRE ATT&amp;CK</li><li>Threat hunting</li></ul></article>
+    <article class="panel mod"><div class="mod-top"><span>mod_04 / endpoint+soar</span><span class="status">running</span></div>
+      <h3>Endpoint security &amp; SOC automation</h3>
+      <p>Cortex XDR rollout and policy tuning, plus automation for IOC enrichment, alert triage and notifications.</p>
+      <ul class="chips"><li>Cortex XDR</li><li>Cortex XSOAR</li><li>Agent health</li><li>Automation</li></ul></article>
+  </div>
+</section>
+
+<section class="block" id="experience">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> tail -f /var/log/experience.log</p>
+    <h2><span class="hash">#</span> Experience</h2>
+    <p>Altisec Technologies Pvt. Ltd., Mumbai · Jul 2023 – Present · Palo Alto Cortex delivery for mid-size and enterprise customers.</p>
+  </div>
+  <div class="filters" role="group" aria-label="Filter experience">
+    <button class="filter" type="button" data-f="all" aria-pressed="true">all</button>
+    <button class="filter" type="button" data-f="xsiam" aria-pressed="false">xsiam</button>
+    <button class="filter" type="button" data-f="siem" aria-pressed="false">siem-migration</button>
+    <button class="filter" type="button" data-f="xdr" aria-pressed="false">xdr-endpoint</button>
+    <button class="filter" type="button" data-f="soc" aria-pressed="false">soc-automation</button>
+  </div>
+  <div class="exp">
+    <div class="exp-list" id="exp-list" role="tablist" aria-label="Roles and engagements"></div>
+    <article class="panel exp-detail" id="exp-detail" role="tabpanel" aria-live="polite"></article>
+  </div>
+</section>
+
+<section class="block" id="work">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> ls ./cases --anonymized</p>
+    <h2><span class="hash">#</span> Selected work</h2>
+    <p>Client names are redacted.</p>
+  </div>
+  <div class="grid-2">
+    <article class="panel case" style="--sev: var(--red)"><div class="meta"><span class="id">CASE-001</span><span>enterprise · ██████</span></div>
+      <h3>Two legacy SIEMs migrated to Cortex XSIAM</h3>
+      <p>Data-source onboarding, parser validation, correlation-rule migration and detection fine-tuning for two enterprise SIEM environments.</p>
+      <ul class="chips"><li>SIEM migration</li><li>Parser validation</li><li>Correlation rules</li></ul></article>
+    <article class="panel case" style="--sev: var(--amber)"><div class="meta"><span class="id">CASE-002</span><span>renewable energy · ██████</span></div>
+      <h3>XSIAM for 30+ distributed sites with no central network</h3>
+      <p>Bringing solar, wind and battery storage plants into one XSIAM tenant when the sites share no connectivity.</p>
+      <ul class="chips"><li>Cortex XSIAM</li><li>Distributed sites</li><li>Log collection</li></ul></article>
+    <article class="panel case" style="--sev: var(--cyan)"><div class="meta"><span class="id">CASE-003</span><span>enterprise SOC · ██████</span></div>
+      <h3>Multi-source telemetry onboarding</h3>
+      <p>Firewall, VPN, WAF, AWS, Azure AD, DLP, Windows, Linux and Solaris logs onboarded into one normalized data model.</p>
+      <ul class="chips"><li>AWS</li><li>Azure AD</li><li>WAF &amp; VPN</li><li>Solaris</li></ul></article>
+    <article class="panel case" style="--sev: var(--green)"><div class="meta"><span class="id">CASE-004</span><span>mid-size &amp; enterprise · ██████</span></div>
+      <h3>Cortex XDR endpoint operationalization</h3>
+      <p>Agent deployment, policy tuning, health monitoring and alert optimization so XDR runs clean after go-live.</p>
+      <ul class="chips"><li>Cortex XDR</li><li>Endpoint onboarding</li><li>Policy tuning</li></ul></article>
+  </div>
+</section>
+
+<section class="block" id="projects">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> git log --author="prabodh" --oneline</p>
+    <h2><span class="hash">#</span> Things I've built</h2>
+  </div>
+  <div class="grid-3">
+    <article class="panel proj"><div class="meta"><span class="pill">siem → xsiam</span></div>
+      <h3>SIEM migration runbook</h3>
+      <p>A repeatable approach for moving legacy SIEMs to XSIAM: source inventory, ingestion validation, normalization and use-case checks.</p>
+      <div class="impact">2 enterprise SIEMs migrated to XSIAM</div>
+      <ul class="chips"><li>XSIAM</li><li>Parsing</li><li>Data model</li></ul></article>
+    <article class="panel proj"><div class="meta"><span class="pill">xql</span></div>
+      <h3>XQL detection &amp; tuning pack</h3>
+      <p>XQL detections and correlation rules for threat monitoring and investigation, tuned against live telemetry.</p>
+      <div class="impact">fewer false positives, better alert visibility</div>
+      <ul class="chips"><li>XQL</li><li>MITRE ATT&amp;CK</li><li>Correlation rules</li></ul></article>
+    <article class="panel proj"><div class="meta"><span class="pill">soc automation</span></div>
+      <h3>IOC enrichment &amp; triage automation</h3>
+      <p>Scripts and workflows that enrich IOCs, triage alerts and send notifications without an analyst doing it by hand.</p>
+      <div class="impact">less manual effort, faster response</div>
+      <ul class="chips"><li>XSOAR</li><li>Scripting</li><li>Alert triage</li></ul></article>
+  </div>
+</section>
+
+<section class="block" id="skills">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> ls -la ~/skills</p>
+    <h2><span class="hash">#</span> Skills &amp; education</h2>
+  </div>
+  <div class="grid-3">
+    <div class="panel skill"><span class="path">cortex/</span><ul class="chips"><li>Cortex XSIAM</li><li>Cortex XDR</li><li>Cortex XSOAR</li><li>XQL</li><li>Correlation rules</li><li>Parsing</li></ul></div>
+    <div class="panel skill"><span class="path">xsiam-engineering/</span><ul class="chips"><li>Data-source onboarding</li><li>Log validation</li><li>Parser validation</li><li>Normalization</li><li>Correlation migration</li><li>Detection tuning</li></ul></div>
+    <div class="panel skill"><span class="path">endpoint/</span><ul class="chips"><li>Agent deployment</li><li>Endpoint onboarding</li><li>Policy configuration</li><li>Alert optimization</li><li>Trend Micro</li><li>Symantec</li></ul></div>
+    <div class="panel skill"><span class="path">data-sources/</span><ul class="chips"><li>AWS logs</li><li>Azure AD</li><li>Firewall</li><li>WAF</li><li>VPN</li><li>DLP</li><li>Windows</li><li>Linux</li><li>Database logs</li></ul></div>
+    <div class="panel skill"><span class="path">soc-detection/</span><ul class="chips"><li>Threat hunting</li><li>MITRE ATT&amp;CK</li><li>Incident investigation</li><li>Alert triage</li><li>Seceon SIEM</li><li>Active Directory</li></ul></div>
+    <div class="panel skill"><span class="path">offensive-grc/</span><ul class="chips"><li>Nmap</li><li>Nessus</li><li>Metasploit</li><li>Vulnerability assessment</li><li>ISO 27001</li><li>Security audits</li></ul></div>
+  </div>
+  <div class="edu-row">
+    <div class="panel edu"><small>edu[0] · 2023 – 2025 · CGPA 7.80</small><b>MBA / MMS, Systems &amp; IT · University of Mumbai</b></div>
+    <div class="panel edu"><small>edu[1] · 2020 – 2023 · CGPA 8.80</small><b>B.Sc. Information Technology · University of Mumbai</b></div>
+  </div>
+</section>
+
+<section class="block" id="learning">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> apt list --installing</p>
+    <h2><span class="hash">#</span> Currently learning</h2>
+    <p>What I'm studying right now, the tools I'm getting hands-on with, and where my interest is heading.</p>
+  </div>
+  <div class="learn-grid">
+    <div class="panel queue" id="learn-queue" aria-label="Certifications in progress"></div>
+    <div class="side">
+      <div class="panel"><span class="path">~/learning/tools-and-topics</span><ul class="chips" id="learn-tools"></ul></div>
+      <div class="panel"><span class="path">~/learning/interests</span><ul class="chips dim" id="learn-interests"></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="certifications">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> gpg --verify ./certs/*</p>
+    <h2><span class="hash">#</span> Certifications &amp; recognition</h2>
+  </div>
+  <div class="cert-tools">
+    <span class="hint">Click a card to flip it and see the certificate. Click again to flip back, or use verify ↗ to check it with the issuer.</span>
+    <button class="btn ghost sm" type="button" id="flip-all" aria-pressed="false">flip --all</button>
+  </div>
+  <div class="cert-grid" id="cert-grid"></div>
+</section>
+
+<section class="block" id="contact">
+  <div class="sec-head">
+    <p class="cmd"><span class="u">$</span> ssh prabodh@contact</p>
+    <h2><span class="hash">#</span> Let's talk security operations</h2>
+  </div>
+  <div class="contact">
+    <div class="c-list">
+      <div class="panel c-item">
+        <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+        <div><span class="lbl">email</span><b id="email">prabodhghule21391@gmail.com</b></div>
+        <button class="copy" id="copy" type="button">copy</button>
+      </div>
+      <a class="panel c-item" href="https://www.linkedin.com/in/prabodhghule">
+        <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM9.5 9.5h3.8v1.6h.06c.53-1 1.84-2.06 3.79-2.06 4.05 0 4.8 2.67 4.8 6.13V21h-4v-5.1c0-1.22-.02-2.78-1.7-2.78-1.7 0-1.96 1.33-1.96 2.7V21h-4z"/></svg></span>
+        <div><span class="lbl">linkedin</span><b>/in/prabodhghule</b></div>
+      </a>
+      <div class="panel c-item">
+        <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+        <div><span class="lbl">location</span><b>Mumbai, Maharashtra, IN</b></div>
+      </div>
+    </div>
+    <form class="term" id="contact-form" novalidate>
+      <div class="term-bar"><i></i><i></i><i></i><span>new_message.sh</span></div>
+      <div class="term-body">
+        <div class="row2">
+          <div class="field"><label for="f-name">name</label><input id="f-name" name="name" autocomplete="name" required></div>
+          <div class="field"><label for="f-email">email</label><input id="f-email" name="email" type="email" autocomplete="email" required></div>
+        </div>
+        <div class="field"><label for="f-msg">message</label><textarea id="f-msg" name="message" required></textarea></div>
+        <button class="btn" type="submit">./send_message</button>
+        <p class="note" id="form-note" role="status"></p>
+      </div>
+    </form>
+  </div>
+</section>
+
+</main>
+<footer class="site">© <span id="yr">2026</span> Prabodh Shivaji Ghule · <span class="g">session secured</span> · Mumbai, IN</footer>
+
+<script>
+/* ============ EDIT YOUR CONTENT HERE ============ */
+const EXPERIENCE = [
+  { id: "senior", tags: ["xsiam","siem","soc"], name: "Senior Technical Engineer", role: "Altisec Technologies Pvt. Ltd. · Mumbai", label: "current", dates: "Jul 2026 – Present",
+    summary: "Promoted after three years of Cortex delivery. Leads technical design and security operations work across XSIAM, XDR and XSOAR customers.",
+    points: ["Designs Cortex XSIAM architectures aligned with customer infrastructure and SOC workflows.", "Leads customer technical discussions, deployment planning and architecture reviews.", "Builds integrations for distributed sites with limited connectivity."] },
+  { id: "tech", tags: ["xdr","xsiam","soc"], name: "Technical Engineer", role: "Altisec Technologies Pvt. Ltd. · Mumbai", label: "xdr · xsiam", dates: "Jul 2023 – Jul 2026",
+    summary: "Deployed and managed Palo Alto Cortex XDR and XSIAM across mid-size and enterprise customer environments.",
+    points: ["Agent deployment, endpoint onboarding, policy configuration, tuning and troubleshooting for Cortex XDR.", "Onboarded and validated firewall, VPN, WAF, cloud, identity, endpoint, DLP, Windows, Linux and Solaris telemetry.", "Worked with SOC teams and customers to validate pipelines, tune detections and reduce false positives."] },
+  { id: "siem", tags: ["siem","xsiam"], name: "Enterprise SIEM Migration", role: "XSIAM migration engagements", label: "siem → xsiam", dates: "Altisec",
+    summary: "Contributed to migrating 2 enterprise legacy SIEM environments to Cortex XSIAM.",
+    points: ["Onboarded enterprise data sources and validated parsers and normalization.", "Migrated correlation rules and fine-tuned detections after cutover.", "Validated ingestion pipelines, detection visibility and monitoring use cases."] },
+  { id: "detect", tags: ["soc","xsiam"], name: "Detection Engineering", role: "XQL · correlation rules", label: "detection", dates: "Altisec",
+    summary: "Develops and optimizes XQL detections, correlation rules, parsing logic and security analytics for threat monitoring and investigation.",
+    points: ["Mapped detections to MITRE ATT&CK for threat hunting and investigation.", "Fixed log normalization and parser problems to raise detection accuracy.", "Tuned rules with SOC analysts to reduce false positives."] },
+  { id: "auto", tags: ["soc","xdr"], name: "SOC Automation", role: "Enrichment · triage · notifications", label: "automation", dates: "Altisec",
+    summary: "Automated repetitive SOC tasks to reduce manual effort and response time.",
+    points: ["Automated IOC enrichment, alert triage and notification workflows.", "Wrote scripts that cut manual investigation steps.", "Supported endpoint health monitoring and alert optimization."] }
+];
+
+/* img: put the certificate image file next to index.html (e.g. certs/xsiam.png).
+   verify: the "Show credential" link from LinkedIn or Credly. Leave "" if none. */
+const CERTS = [
+  { name: "CYBERFORCE Commander", org: "Palo Alto Networks", issued: "Aug 2026", expires: "", id: "", desc: "Palo Alto Networks' top tier of the CYBERFORCE programme, recognising hands-on Cortex expertise.", img: "certs/cyberforce-commander.webp", verify: "https://www.credly.com/badges/3a88179f-2bb3-4346-86e9-1ece39d80043/public_url" },
+  { name: "Certified Security Operations Professional", org: "Palo Alto Networks", issued: "Jan 2026", expires: "Jan 2028", id: "", desc: "Security operations with Palo Alto solutions: threat analysis, incident response and SOC operations.", img: "certs/secops-professional.webp", verify: "https://www.credly.com/badges/1bd01b39-2658-47ba-81aa-af76be0d85f9" },
+  { name: "Cortex XSIAM Engineer", org: "Palo Alto Networks", issued: "Jul 2025", expires: "Jul 2027", id: "", desc: "Designing, deploying and operating Cortex XSIAM: data onboarding, detection and automation.", img: "certs/xsiam-engineer.webp", verify: "https://www.credly.com/badges/d77902b5-9b40-4c6f-bcae-f943e74d6e2a/public_url" },
+  { name: "CompTIA Security+ (SY0-701)", org: "CompTIA", issued: "Jul 2025", expires: "Jul 2028", id: "J32N8YHQ8EQ41LD2", desc: "Threats and vulnerabilities, security architecture, operations, risk and governance.", img: "certs/security-plus.webp", verify: "https://verify.comptia.org" },
+  { name: "CYBERFORCE Defender", org: "Palo Alto Networks", issued: "Feb 2025", expires: "", id: "", desc: "Recognition in Palo Alto Networks' CYBERFORCE community of technical experts.", img: "certs/cyberforce-defender.webp", verify: "https://www.credly.com/badges/6f769ebe-60fa-4515-b901-3f5f7813139d/public_url" },
+  { name: "Certified Network Security Practitioner", org: "The SecOps Group", issued: "Jan 2025", expires: "", id: "9571045", desc: "Passed with merit. Practical exam on Active Directory, DNS, Linux, OSINT, network tools and traffic analysis.", img: "certs/cnsp.webp", verify: "https://secops.group/certificate-validation/" },
+  { name: "ISO/IEC 27001:2022 Information Security Associate", org: "SkillFront", issued: "Jan 2025", expires: "", id: "93472838145357", desc: "ISO/IEC 27001:2022 fundamentals: ISMS concepts, controls and risk management.", img: "certs/iso-associate.webp", verify: "https://www.skillfront.com/Badges/93472838145357" },
+  { name: "ISO 27001:2022 Lead Auditor", org: "Udemy", issued: "Mar 2024", expires: "", id: "UC-d8a6e2bb-65a4-4a2f-96a0-3d9bd24526b3", desc: "Planning and running ISMS audits against ISO/IEC 27001:2022.", img: "certs/iso-lead-auditor.webp", verify: "https://ude.my/UC-d8a6e2bb-65a4-4a2f-96a0-3d9bd24526b3" }
+];
+
+/* progress: a number 0-100 shows a filled bar; null shows an "in progress" scanning bar. */
+const LEARNING = [
+  { name: "Certified Security Operations Architect", org: "Palo Alto Networks", desc: "Next step after SecOps Professional: designing SOC architectures on the Cortex platform.", status: "exam prep", progress: null },
+  { name: "AWS Certified Solutions Architect – Associate (SAA-C03)", org: "Amazon Web Services", desc: "Resilient, secure and cost-aware AWS architectures, to go deeper on the cloud sources I onboard.", status: "studying", progress: null },
+  { name: "Microsoft Azure Administrator (AZ-104)", org: "Microsoft", desc: "Identity, networking, storage and monitoring in Azure, alongside the Azure AD telemetry I already integrate.", status: "studying", progress: null }
+];
+const LEARN_TOOLS = ["Cortex AgentiX", "Agentic AI for SOC", "AWS (VPC, IAM, CloudTrail)", "Azure (Entra ID, Monitor)", "TLS internals", "NAT", "DLP", "Endpoint behaviour analysis", "Security regulations"];
+const LEARN_INTERESTS = ["AI-driven security operations", "Detection engineering", "SOC automation", "Cloud security", "Threat hunting", "TryHackMe labs", "Latest attack techniques"];
+/* ================================================ */
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* experience */
+const list = document.getElementById('exp-list'), detail = document.getElementById('exp-detail');
+list.innerHTML = EXPERIENCE.map((e, i) => `
+  <button class="exp-item" type="button" role="tab" data-id="${e.id}" aria-selected="false">
+    <span class="pid">[${String(i + 1).padStart(2, '0')}]</span>
+    <span><b>${esc(e.name)}</b><small>${esc(e.role)}</small></span>
+    <span class="arr" aria-hidden="true">&gt;</span>
+  </button>`).join('');
+function show(id) {
+  const e = EXPERIENCE.find(x => x.id === id); if (!e) return;
+  list.querySelectorAll('.exp-item').forEach(b => b.setAttribute('aria-selected', b.dataset.id === id));
+  detail.innerHTML = `
+    <div class="meta"><span class="pill">${esc(e.label)}</span><span>${esc(e.dates)}</span></div>
+    <h3>${esc(e.name)}</h3><div class="sub">${esc(e.role)}</div>
+    <p>${esc(e.summary)}</p>
+    <ul class="ticks">${e.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`;
+}
+list.addEventListener('click', ev => { const b = ev.target.closest('.exp-item'); if (b) show(b.dataset.id); });
+document.querySelectorAll('.filter').forEach(f => f.addEventListener('click', () => {
+  document.querySelectorAll('.filter').forEach(x => x.setAttribute('aria-pressed', x === f));
+  let first = null;
+  list.querySelectorAll('.exp-item').forEach(b => {
+    const e = EXPERIENCE.find(x => x.id === b.dataset.id);
+    const on = f.dataset.f === 'all' || e.tags.includes(f.dataset.f);
+    b.hidden = !on; if (on && !first) first = e.id;
+  });
+  if (first) show(first);
+}));
+show(EXPERIENCE[0].id);
+
+
+/* learning */
+document.getElementById('learn-queue').innerHTML = LEARNING.map(l => {
+  const known = typeof l.progress === 'number';
+  return `<div class="q-item">
+    <div class="q-head"><h3>${esc(l.name)}</h3><span class="q-org">${esc(l.org)}</span></div>
+    <p>${esc(l.desc)}</p>
+    <div class="bar${known ? '' : ' indet'}" role="progressbar" aria-label="${esc(l.name)} progress" ${known ? `aria-valuemin="0" aria-valuemax="100" aria-valuenow="${l.progress}"` : 'aria-valuetext="In progress"'}><i${known ? ` style="width:${Math.max(0, Math.min(100, l.progress))}%"` : ''}></i></div>
+    <div class="q-meta"><span class="st">[${esc(l.status)}]</span><span>${known ? l.progress + '%' : 'in progress'}</span></div>
+  </div>`;
+}).join('');
+document.getElementById('learn-tools').innerHTML = LEARN_TOOLS.map(t => `<li>${esc(t)}</li>`).join('');
+document.getElementById('learn-interests').innerHTML = LEARN_INTERESTS.map(t => `<li>${esc(t)}</li>`).join('');
+
+/* certifications: flip cards */
+const grid = document.getElementById('cert-grid');
+grid.innerHTML = CERTS.map((c, i) => {
+  const rows = [['issued', c.issued], ['expires', c.expires], ['cred_id', c.id]].filter(r => r[1]);
+  return `
+  <div class="flip" data-i="${i}">
+    <div class="flip-inner">
+      <div class="face front">
+        <div class="top"><span class="org">${esc(c.org)}</span><span>#${String(i + 1).padStart(2, '0')}</span></div>
+        <h3>${esc(c.name)}</h3>
+        <p class="desc">${esc(c.desc)}</p>
+        <dl>${rows.map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('') || '<dt>status</dt><dd>verified</dd>'}</dl>
+        <button class="flip-btn" type="button" aria-label="Show certificate for ${esc(c.name)}">flip → certificate</button>
+      </div>
+      <div class="face back" aria-hidden="true">
+        <div class="img" data-img="${esc(c.img)}">
+          <div class="ph"><span><b>[ image pending ]</b>${c.img ? esc(c.img) : "certificate image coming soon"}</span></div>
+        </div>
+        <div class="bar">
+          ${c.verify ? `<a href="${esc(c.verify)}">verify ↗</a>` : `<span style="color:var(--dim)">${esc(c.org)}</span>`}
+          <button type="button" class="unflip" tabindex="-1">← back</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}).join('');
+
+/* load each certificate image if the file exists; keep the placeholder if not */
+grid.querySelectorAll('.img[data-img]').forEach(box => {
+  const src = box.dataset.img; if (!src) return;
+  const im = new Image();
+  im.alt = 'Certificate image';
+  im.onload = () => { box.innerHTML = ''; box.appendChild(im); };
+  im.src = src;
+});
+
+function setFlip(card, on) {
+  card.classList.toggle('on', on);
+  card.querySelector('.back').setAttribute('aria-hidden', !on);
+  card.querySelector('.front').setAttribute('aria-hidden', on);
+  card.querySelector('.flip-btn').tabIndex = on ? -1 : 0;
+  card.querySelector('.unflip').tabIndex = on ? 0 : -1;
+  const v = card.querySelector('.back a'); if (v) v.tabIndex = on ? 0 : -1;
+}
+grid.querySelectorAll('.flip').forEach(card => setFlip(card, false));
+grid.addEventListener('click', ev => {
+  const card = ev.target.closest('.flip'); if (!card) return;
+  if (ev.target.closest('a')) return;
+  const on = !card.classList.contains('on');
+  setFlip(card, on);
+  (on ? card.querySelector('.unflip') : card.querySelector('.flip-btn')).focus({ preventScroll: true });
+});
+
+const flipAll = document.getElementById('flip-all');
+flipAll.addEventListener('click', () => {
+  const on = flipAll.getAttribute('aria-pressed') !== 'true';
+  flipAll.setAttribute('aria-pressed', on);
+  flipAll.textContent = on ? 'flip --reset' : 'flip --all';
+  grid.querySelectorAll('.flip').forEach(c => setFlip(c, on));
+});
+
+/* typed role line */
+const roles = ["Senior Technical Engineer · Cortex XSIAM & XDR", "XQL detection engineer", "SIEM → XSIAM migrations", "CYBERFORCE Commander 2026"];
+const typed = document.getElementById('typed');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduce) {
+  let r = 0, ch = roles[0].length, del = false;
+  setTimeout(function tick() {
+    const word = roles[r];
+    if (!del && ch === word.length) { del = true; return setTimeout(tick, 2200); }
+    if (del && ch === 0) { del = false; r = (r + 1) % roles.length; }
+    ch += del ? -1 : 1;
+    typed.textContent = roles[r].slice(0, ch);
+    setTimeout(tick, del ? 28 : 55);
+  }, 2400);
+}
+
+/* background: slow hex rain */
+const cv = document.getElementById('rain'), cx = cv.getContext('2d');
+let cols = [], W = 0, H = 0; const FS = 14, glyphs = '0123456789ABCDEF<>/{}[]$#';
+function size() { W = cv.width = innerWidth; H = cv.height = innerHeight; cols = Array.from({ length: Math.ceil(W / (FS * 1.6)) }, () => Math.random() * H / FS); }
+size(); addEventListener('resize', size);
+let last = 0;
+function draw(t) {
+  if (t - last > 70) {
+    last = t;
+    cx.fillStyle = 'rgba(5,8,10,0.16)'; cx.fillRect(0, 0, W, H);
+    cx.font = FS + 'px "IBM Plex Mono", monospace';
+    cols.forEach((y, i) => {
+      if (Math.random() > 0.55) return;
+      cx.fillStyle = Math.random() > 0.97 ? 'rgba(61,255,154,0.55)' : 'rgba(61,255,154,0.12)';
+      cx.fillText(glyphs[(Math.random() * glyphs.length) | 0], i * FS * 1.6, y * FS);
+      cols[i] = y * FS > H && Math.random() > 0.97 ? 0 : y + 1;
+    });
+  }
+  requestAnimationFrame(draw);
+}
+if (!reduce) requestAnimationFrame(draw);
+
+/* progress + active nav */
+const bar = document.getElementById('progress');
+const navLinks = [...document.querySelectorAll('.links a')];
+const secs = navLinks.map(a => document.querySelector(a.getAttribute('href')));
+function onScroll() {
+  const h = document.documentElement.scrollHeight - innerHeight;
+  bar.style.width = (h > 0 ? scrollY / h * 100 : 0) + '%';
+  let cur = 0; secs.forEach((s, i) => { if (s && s.getBoundingClientRect().top < 120) cur = i; });
+  navLinks.forEach((a, i) => a.classList.toggle('active', i === cur));
+}
+addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+/* copy email */
+document.getElementById('copy').addEventListener('click', async ev => {
+  const b = ev.currentTarget;
+  try { await navigator.clipboard.writeText(document.getElementById('email').textContent); b.textContent = 'copied ✓'; }
+  catch (e) { b.textContent = 'select & copy'; }
+  setTimeout(() => { b.textContent = 'copy'; }, 1600);
+});
+
+/* contact form (not connected to a mail service yet) */
+document.getElementById('contact-form').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const f = ev.currentTarget, note = document.getElementById('form-note');
+  if (!f.checkValidity()) { note.style.color = 'var(--red)'; note.textContent = 'error: name, a valid email and a message are required'; return; }
+  note.style.color = 'var(--amber)';
+  note.textContent = 'warn: form not connected yet. Email or message me on LinkedIn for now.';
+});
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+/* resume download: uses the Claude viewer's download prompt when available, plain link elsewhere */
+(async () => {
+  let dl = null;
+  try { if (window.claude && claude.use) dl = await claude.use("downloads"); } catch (e) {}
+  if (!dl) return;
+  const note = document.getElementById('dl-note');
+  document.querySelectorAll('.js-resume').forEach(a => a.addEventListener('click', async ev => {
+    ev.preventDefault();
+    try {
+      const blob = await (await fetch(a.getAttribute('href'))).blob();
+      await dl.save({ filename: 'Prabodh-Shivaji-Ghule-Resume.pdf', data: blob });
+      note.textContent = '';
+    } catch (e) {
+      if (e && e.code === 'declined') return;
+      note.textContent = 'warn: download unavailable here. Email me for the resume.';
+    }
+  }));
+})();
+
+</script>
+</body>
+</html>
